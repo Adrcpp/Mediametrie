@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Schema Namespace="Mediametrie_appModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+  <EntityType Name="ContainerRelations">
+    <Key>
+      <PropertyRef Name="RelationID" />
+    </Key>
+    <Property Name="ContainerID" Type="int" Nullable="false" />
+    <Property Name="TaskID" Type="int" Nullable="false" />
+    <Property Name="RelationID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+  </EntityType>
+  <EntityType Name="Containers">
+    <Key>
+      <PropertyRef Name="ContainerID" />
+    </Key>
+    <Property Name="ContainerID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="ContainerName" Type="varchar" MaxLength="30" />
+  </EntityType>
+  <EntityType Name="sysdiagrams">
+    <Key>
+      <PropertyRef Name="diagram_id" />
+    </Key>
+    <Property Name="name" Type="nvarchar" MaxLength="128" Nullable="false" />
+    <Property Name="principal_id" Type="int" Nullable="false" />
+    <Property Name="diagram_id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="version" Type="int" />
+    <Property Name="definition" Type="varbinary(max)" />
+  </EntityType>
+  <EntityType Name="Tasks">
+    <Key>
+      <PropertyRef Name="TaskID" />
+    </Key>
+    <Property Name="TaskID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="TaskName" Type="varchar" MaxLength="500" Nullable="false" />
+    <Property Name="TaskPriority" Type="int" />
+    <Property Name="ValidationStatus" Type="bit" Nullable="false" />
+    <Property Name="CreationDate" Type="date" />
+    <Property Name="DeadLineDate" Type="date" />
+    <Property Name="ValidationDate" Type="date" />
+  </EntityType>
+  <Association Name="FK__Container__Conta__2B3F6F97">
+    <End Role="Containers" Type="Self.Containers" Multiplicity="1">
+      <OnDelete Action="Cascade" />
+    </End>
+    <End Role="ContainerRelations" Type="Self.ContainerRelations" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Containers">
+        <PropertyRef Name="ContainerID" />
+      </Principal>
+      <Dependent Role="ContainerRelations">
+        <PropertyRef Name="ContainerID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK__Container__TaskI__2C3393D0">
+    <End Role="Tasks" Type="Self.Tasks" Multiplicity="1">
+      <OnDelete Action="Cascade" />
+    </End>
+    <End Role="ContainerRelations" Type="Self.ContainerRelations" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Tasks">
+        <PropertyRef Name="TaskID" />
+      </Principal>
+      <Dependent Role="ContainerRelations">
+        <PropertyRef Name="TaskID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <EntityContainer Name="Mediametrie_appModelStoreContainer">
+    <EntitySet Name="ContainerRelations" EntityType="Self.ContainerRelations" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Containers" EntityType="Self.Containers" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="sysdiagrams" EntityType="Self.sysdiagrams" Schema="dbo" store:Type="Tables" />
+    <EntitySet Name="Tasks" EntityType="Self.Tasks" Schema="dbo" store:Type="Tables" />
+    <AssociationSet Name="FK__Container__Conta__2B3F6F97" Association="Self.FK__Container__Conta__2B3F6F97">
+      <End Role="Containers" EntitySet="Containers" />
+      <End Role="ContainerRelations" EntitySet="ContainerRelations" />
+    </AssociationSet>
+    <AssociationSet Name="FK__Container__TaskI__2C3393D0" Association="Self.FK__Container__TaskI__2C3393D0">
+      <End Role="Tasks" EntitySet="Tasks" />
+      <End Role="ContainerRelations" EntitySet="ContainerRelations" />
+    </AssociationSet>
+  </EntityContainer>
+</Schema>

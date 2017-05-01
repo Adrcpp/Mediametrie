@@ -1,0 +1,260 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Data.Entity;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using System.ComponentModel;
+using System.Text.RegularExpressions;
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Collections;
+
+namespace WpfApplication3
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        //Defs pour l'affichage des tasks
+        public Mediametrie_appEntities2 _context = new Mediametrie_appEntities2();
+
+        public IEnumerable<Tasks> SelectedTasks { get; private set; }
+
+        public IEnumerable<Containers> SelectedContainers { get; private set; }
+
+        public IEnumerable<ContainerRelations> SelectedContainerRelations { get; private set; }
+
+        public class ComboboxItem
+        {
+            public string Text { get; set; }
+            public int Id { get; set; }
+            public override string ToString()
+            {
+                return Text;
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Data.CollectionViewSource tasksViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tasksViewSource")));
+            // Load data by setting the CollectionViewSource.Source property:
+            // tasksViewSource.Source = [generic data source]
+            
+            _context.Tasks.Load();
+            _context.Containers.Load();
+            _context.ContainerRelations.Load();
+
+            SelectedTasks = _context.Tasks.Local;
+            SelectedContainers = _context.Containers.Local;
+            SelectedContainerRelations = _context.ContainerRelations.Local;
+
+            RefreshComboBox();
+            RefreshtasksView();
+            InitializeComponent();
+        }
+
+        public void RefreshComboBox()
+        {
+            _context.Containers.Load();
+            SelectedContainers = _context.Containers.Local;
+            for (int i = ContainerDropdown.Items.Count - 1; i > 2; i--)
+            {
+                ContainerDropdown.Items.RemoveAt(i);
+            }
+            foreach (Containers container in SelectedContainers)
+            {
+                ComboboxItem temp = new ComboboxItem();
+                temp.Text = container.ContainerName;
+                temp.Id = container.ContainerID;
+                ContainerDropdown.Items.Add(temp);
+            }
+        }
+
+        public void RefreshtasksView()
+        {
+            System.Windows.Data.CollectionViewSource tasksViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tasksViewSource")));
+
+            DeleteRelationButton.Visibility = System.Windows.Visibility.Hidden;
+            addRelationButton.Visibility = System.Windows.Visibility.Hidden;
+            deleteContainerButton.Visibility = System.Windows.Visibility.Hidden;
+            if (ContainerDropdown.SelectedItem == cdi1)
+                SelectedTasks = _context.Tasks.Local;
+            else if (ContainerDropdown.SelectedItem == cdi2)
+                SelectedTasks = _context.Tasks.Local.Where(t => t.TaskPriority >= 3).ToList();
+            else if (ContainerDropdown.SelectedItem == cdi3)
+                SelectedTasks = _context.Tasks.Local.Where(t => t.DeadLineDate == DateTime.Today).ToList();
+            else
+            {
+                _context.ContainerRelations.Load();
+                _context.Containers.Load();
+                SelectedContainers = _context.Containers.Local;
+                SelectedTasks = Enumerable.Empty<Tasks>();
+
+               Containers cont = SelectedContainers.Single(s => s.ContainerID == ((ComboboxItem)ContainerDropdown.SelectedItem).Id);
+
+               foreach (ContainerRelations relation in cont.ContainerRelations)
+                {
+                    SelectedTasks = SelectedTasks.Concat(_context.Tasks.Local.Where(t => t.TaskID == relation.Tasks.TaskID)).ToList();
+                }
+
+                /*foreach (Containers container in SelectedContainers.Where(s => s.ContainerID == ((ComboboxItem)ContainerDropdown.SelectedItem).Id))
+                {
+                    foreach (ContainerRelations relation in container.ContainerRelations)
+                    {
+                        SelectedTasks = SelectedTasks.Concat(_context.Tasks.Local.Where(t => t.TaskID == relation.Tasks.TaskID)).ToList();
+                    }
+                }*/
+                DeleteRelationButton.Visibility = System.Windows.Visibility.Visible;
+                addRelationButton.Visibility = System.Windows.Visibility.Visible;
+                deleteContainerButton.Visibility = System.Windows.Visibility.Visible;
+            }
+            tasksViewSource.Source = SelectedTasks; 
+            ICollection<Tasks> listcount = SelectedTasks as ICollection<Tasks>;
+            if (taskNumber != null)
+                taskNumber.Text = "" + listcount.Count + " Tasks(s)";
+        }
+
+        private void ContainerDropdown_SelectionChanged(object sender, System.EventArgs e)
+        {
+            if (ContainerDropdown.SelectedIndex != -1)
+                RefreshtasksView();
+        }
+
+        private void closeButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        private void newTaskButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ContainerDropdown.SelectedIndex == 1)
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.Tasks (TaskName, TaskPriority) VALUES ('New task', 4);");
+            else if (ContainerDropdown.SelectedIndex == 2)
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.Tasks (TaskName, TaskPriority, DeadLineDate) VALUES ('New task', 1, GETDATE());");
+            else if (ContainerDropdown.SelectedIndex > 2)
+            {
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.Tasks (TaskName, TaskPriority) VALUES ('New task', 1);");
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.ContainerRelations (TaskID, ContainerID) SELECT MAX(Tasks.TaskID), " + ((ComboboxItem)ContainerDropdown.SelectedItem).Id + " FROM Tasks, Containers;");
+            }
+            else
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.Tasks (TaskName, TaskPriority) VALUES ('New task', 1);");
+            _context.Tasks.Load();
+            RefreshtasksView();
+        }
+
+        private void addRelationButton_Click(object sender, RoutedEventArgs e)
+        {
+            Window1 win1 = new Window1(_context, ((ComboboxItem)ContainerDropdown.SelectedItem).Id) { Owner = this};
+            win1.ShowDialog();
+            RefreshtasksView();
+            int temp = ContainerDropdown.SelectedIndex;
+            RefreshComboBox();
+            ContainerDropdown.SelectedIndex = temp;
+        }
+
+        private void addContainerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Window2();
+
+            if (dialog.ShowDialog() == true)
+            {
+                _context.Database.ExecuteSqlCommand("INSERT INTO dbo.Containers (ContainerName) VALUES ('" + dialog.ResponseText + "');");
+                RefreshComboBox();
+                ContainerDropdown.SelectedIndex = ContainerDropdown.Items.Count - 1;
+            }
+        }
+
+        private void deleteContainerButton_Click(object sender, RoutedEventArgs e)
+        {
+            _context.Containers.Remove(_context.Containers.Where(r => r.ContainerID == ((ComboboxItem)ContainerDropdown.SelectedItem).Id).First());
+            _context.SaveChanges();
+            ContainerDropdown.SelectedIndex = 0;
+            RefreshComboBox();
+            RefreshtasksView();
+        }
+
+        private void deleteTaskButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Collections.IList items = (System.Collections.IList)tasksDataGrid.SelectedItems;
+            var collection = items.Cast<Tasks>();
+            foreach (Tasks task in collection.ToList())
+                _context.Tasks.Remove(task);
+            _context.SaveChanges();
+            RefreshtasksView();
+        }
+
+        private void deleteRelationButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Collections.IList items = (System.Collections.IList)tasksDataGrid.SelectedItems;
+            var collection = items.Cast<Tasks>();
+            foreach (Tasks task in collection.ToList())
+                _context.ContainerRelations.Remove(_context.ContainerRelations.Where(r => r.TaskID == task.TaskID && r.ContainerID == ((ComboboxItem)ContainerDropdown.SelectedItem).Id).First());
+            _context.SaveChanges();
+            RefreshtasksView();
+        }
+
+        private void searchGoButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Data.CollectionViewSource tasksViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tasksViewSource")));
+
+            SelectedTasks = SelectedTasks.Where(t => t.TaskName == searchBox.Text);
+            tasksViewSource.Source = SelectedTasks;
+
+            tasksDataGrid.IsReadOnly = true;
+
+            if (searchBox.Text == "")
+            {
+                tasksDataGrid.IsReadOnly = false;
+                RefreshtasksView();
+            }
+        }
+
+        private void searchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                searchGoButton_Click(this, new System.Windows.RoutedEventArgs());
+            }
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            _context.SaveChanges();
+            base.OnClosing(e);
+           _context.Dispose();
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            _context.SaveChanges();
+            _context.Dispose();
+        }
+
+        private void tasksDataGrid_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+        {
+            Tasks task = (Tasks)tasksDataGrid.SelectedItem;
+            if (task.TaskPriority < 1)
+                task.TaskPriority = 1;
+            if (task.TaskPriority > 4)
+                task.TaskPriority = 4;
+            _context.SaveChanges();
+        }
+    }
+}

@@ -1,0 +1,22 @@
+﻿<Window x:Class="WpfApplication3.Window2"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApplication3"
+
+        Title="Add" Height="138.712" Width="178.517" ResizeMode="NoResize">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1" />
+            <ColumnDefinition Width="94*"/>
+            <ColumnDefinition Width="127*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="37*" />
+        </Grid.RowDefinitions>
+        <TextBox x:Name="ResponseTextBox"  Text="New container" MaxLength="30"  Width="150" Height="20" HorizontalAlignment="Center" VerticalAlignment="Top" Grid.ColumnSpan="2" Grid.Column="1" Margin="0,40,0,0" VerticalContentAlignment="Center" KeyDown="ResponseTextBox_KeyDown"/>
+        <Button Content="OK" Click="OKButton_Click" Height="20" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Center" Grid.ColumnSpan="2" Grid.Column="1" Margin="0,10"/>
+        <TextBlock x:Name="textBlock" Grid.Column="1" HorizontalAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="2" FontSize="14" Text="Enter a name :" Margin="0,15,0,0"/>
+    </Grid>
+</Window>
